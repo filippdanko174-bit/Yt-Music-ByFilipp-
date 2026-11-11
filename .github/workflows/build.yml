@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -29,3 +31,16 @@ jobs:
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish APK to Releases (tag "latest")
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk YtMusicByFilipp-debug.apk
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest YtMusicByFilipp-debug.apk \
+            --target "${{ github.sha }}" \
+            --title "Последняя сборка" \
+            --notes "Автосборка debug APK из ветки main, коммит ${{ github.sha }}" \
+            --prerelease
