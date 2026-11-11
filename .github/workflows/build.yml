@@ -1,9 +1,8 @@
-name: Build APK
+name: Build patches
 
 on:
   push:
-    branches: [main]
-  pull_request:
+    branches: [patches]
   workflow_dispatch:
 
 jobs:
@@ -11,36 +10,36 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.9
+      - uses: burrunan/gradle-cache-action@v2
 
-      - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew build --no-daemon --stacktrace
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Show built files
+        run: ls -la patches/build/libs/
 
-      - name: Publish APK to Releases (tag "latest")
-        if: github.event_name != 'pull_request'
+      - name: Publish patches to Releases (tag "patches-latest")
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk YtMusicByFilipp-debug.apk
-          gh release delete latest --yes --cleanup-tag || true
-          gh release create latest YtMusicByFilipp-debug.apk \
+          FILE=$(ls patches/build/libs/*.rvp | head -n 1)
+          cp "$FILE" ytmusic-byfilipp-patches.rvp
+          gh release delete patches-latest --yes --cleanup-tag || true
+          gh release create patches-latest ytmusic-byfilipp-patches.rvp \
             --target "${{ github.sha }}" \
-            --title "Последняя сборка" \
-            --notes "Автосборка debug APK из ветки main, коммит ${{ github.sha }}" \
+            --title "Последняя сборка патчей" \
+            --notes "Файл патчей (.rvp) из ветки patches, коммит ${{ github.sha }}" \
             --prerelease

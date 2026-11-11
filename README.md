@@ -1,19 +1,22 @@
-# Yt Music ByFilipp
+# Yt Music ByFilipp: патчи для YouTube Music
 
-Личный клиент для музыки на Android (Kotlin + Jetpack Compose).
-Цель: интерфейс в духе YouTube Music, без рекламы, с оффлайн-режимом.
+Личные патчи для YouTube Music в формате ReVanced (Kotlin, revanced-patcher).
+Ветка `main` содержит старый эксперимент с отдельным приложением, патчи живут в ветке `patches`.
 
 ## Статус
 
-- [x] Каркас: тема, нижняя панель, три экрана
-- [x] Мини-плеер и полноэкранный плеер с анимациями (пока заглушка без звука)
-- [ ] Воспроизведение через Media3 (ExoPlayer)
-- [ ] Библиотека: локальные треки (MediaStore) и плейлисты (Room)
-- [ ] Оффлайн-режим
+- [x] Конвейер сборки: GitHub Actions собирает файл патчей `.rvp`
+- [x] Патч-заглушка `Custom app name` (проверка конвейера)
+- [ ] Анализ APK конкретной версии YouTube Music (нужен оригинальный APK)
+- [ ] Патчи интерфейса, скрытие лишних кнопок
+- [ ] Патчи рекламы и воспроизведения в фоне
 
-## Сборка
+## Как получить файл патчей
 
-APK собирается автоматически в GitHub Actions при каждом пуше в `main`.
-Скачать: вкладка **Actions** -> последний запуск **Build APK** -> раздел Artifacts -> `app-debug`.
+После каждого пуша в `patches` файл появляется в Releases под тегом `patches-latest`:
+`ytmusic-byfilipp-patches.rvp`.
 
-Локально: открыть папку в Android Studio и нажать Run.
+Применять: ReVanced Manager (Настройки, свой источник патчей) или ReVanced CLI на компьютере.
+Оригинальный APK YouTube Music нужно взять самому.
+
+Основа проекта: [revanced-patches-template](https://github.com/ReVanced/revanced-patches-template), лицензия GPLv3.
