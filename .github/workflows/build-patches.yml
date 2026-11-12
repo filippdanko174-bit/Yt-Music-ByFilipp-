@@ -1,0 +1,78 @@
+name: Build YT Music patches
+
+on:
+  workflow_dispatch:
+
+env:
+  # Готовые патчи (GPL-3.0), на которых строится мод. Проект заброшен, поэтому версия зафиксирована.
+  UPSTREAM_REPO: inotia00/revanced-patches
+  UPSTREAM_REF: 54ce1d4808b12903602a1a0d9a721ee835093c38
+
+jobs:
+  # Чужой код запускается только здесь: права только на чтение, без секретов и без записи в репозиторий.
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Fetch upstream patches (pinned commit)
+        run: |
+          git clone "https://github.com/${UPSTREAM_REPO}" upstream
+          git -C upstream checkout "${UPSTREAM_REF}"
+
+      - name: Apply overlay (your own changes on top)
+        run: |
+          if [ -d overlay ]; then cp -r overlay/. upstream/; fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build patches
+        working-directory: upstream
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./gradlew buildAndroid --no-daemon --stacktrace
+
+      - name: Collect .rvp
+        run: |
+          RVP=$(find upstream/patches/build -name '*.rvp' | head -n 1)
+          test -n "$RVP"
+          cp "$RVP" ytmusic-patches.rvp
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ytmusic-patches
+          path: ytmusic-patches.rvp
+
+  # Публикация: чужой код здесь не запускается, берётся только готовый файл.
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ytmusic-patches
+
+      - name: Publish to Releases (tag "latest")
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest ytmusic-patches.rvp \
+            --target "${{ github.sha }}" \
+            --title "Патчи для YT Music (последняя сборка)" \
+            --notes "Файл патчей .rvp. Основа: ${UPSTREAM_REPO}@${UPSTREAM_REF}" \
+            --prerelease
